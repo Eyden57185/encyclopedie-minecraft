@@ -116,16 +116,29 @@
 
     <!-- Navigation / Filtres -->
     <div class="sticky top-0 z-40 bg-dark-bg/80 backdrop-blur-md border-b border-dark-border py-4">
-        <div class="max-w-7xl mx-auto px-4 flex justify-center gap-3 overflow-x-auto no-scrollbar">
-            <button class="filter-btn active px-5 py-2 rounded-full text-sm font-medium transition-colors bg-white text-black hover:bg-gray-200" data-filter="all">
-                Toutes les versions
-            </button>
-            <button class="filter-btn px-5 py-2 rounded-full text-sm font-medium transition-colors bg-dark-card text-dark-muted border border-dark-border hover:text-white hover:border-gray-500" data-filter="java">
-                Java Edition
-            </button>
-            <button class="filter-btn px-5 py-2 rounded-full text-sm font-medium transition-colors bg-dark-card text-dark-muted border border-dark-border hover:text-white hover:border-gray-500" data-filter="bedrock">
-                Bedrock Edition
-            </button>
+        <div class="max-w-7xl mx-auto px-4 flex flex-col md:flex-row justify-between items-center gap-4">
+            <!-- Boutons de filtre existants -->
+            <div class="flex justify-center gap-3 overflow-x-auto no-scrollbar w-full md:w-auto">
+                <button class="filter-btn active px-5 py-2 rounded-full text-sm font-medium transition-colors bg-white text-black hover:bg-gray-200" data-filter="all">
+                    Toutes les versions
+                </button>
+                <button class="filter-btn px-5 py-2 rounded-full text-sm font-medium transition-colors bg-dark-card text-dark-muted border border-dark-border hover:text-white hover:border-gray-500" data-filter="java">
+                    Java Edition
+                </button>
+                <button class="filter-btn px-5 py-2 rounded-full text-sm font-medium transition-colors bg-dark-card text-dark-muted border border-dark-border hover:text-white hover:border-gray-500" data-filter="bedrock">
+                    Bedrock Edition
+                </button>
+            </div>
+            
+            <!-- NOUVEAU : Barre de recherche -->
+            <div class="relative w-full md:w-96">
+                <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                    <svg class="h-5 w-5 text-dark-muted" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                    </svg>
+                </div>
+                <input type="text" id="search-input" class="block w-full pl-10 pr-3 py-2 border border-dark-border rounded-full leading-5 bg-dark-card text-white placeholder-dark-muted focus:outline-none focus:ring-1 focus:ring-[#238636] focus:border-[#238636] sm:text-sm transition-colors" placeholder="Rechercher une version, un mob, un bloc...">
+            </div>
         </div>
     </div>
 
@@ -275,6 +288,7 @@
 
         const grid = document.getElementById('versions-grid');
         const filterBtns = document.querySelectorAll('.filter-btn');
+        const searchInput = document.getElementById('search-input'); // Nouvel élément
         
         // Éléments de la Modale
         const modal = document.getElementById('version-modal');
@@ -313,10 +327,31 @@
             `;
         }
 
-        // Afficher les cartes avec filtre
-        function renderCards(filter = 'all') {
+        let currentFilter = 'all';
+
+        // Afficher les cartes avec filtre et recherche
+        function renderCards() {
             grid.innerHTML = ''; 
-            const filteredData = versionsData.filter(v => filter === 'all' || v.edition === filter);
+            const searchTerm = searchInput.value.toLowerCase().trim();
+            
+            const filteredData = versionsData.filter(v => {
+                // Filtre par onglet (Java/Bedrock/All)
+                const matchFilter = currentFilter === 'all' || v.edition === currentFilter;
+                
+                // Filtre par recherche textuelle (titre, desc, mobs, blocs)
+                let matchSearch = true;
+                if (searchTerm !== '') {
+                    matchSearch = 
+                        v.version.toLowerCase().includes(searchTerm) ||
+                        v.title.toLowerCase().includes(searchTerm) ||
+                        v.shortDesc.toLowerCase().includes(searchTerm) ||
+                        v.fullDesc.toLowerCase().includes(searchTerm) ||
+                        v.mobs.some(m => m.toLowerCase().includes(searchTerm)) ||
+                        v.blocks.some(b => b.toLowerCase().includes(searchTerm));
+                }
+                
+                return matchFilter && matchSearch;
+            });
             
             if (filteredData.length === 0) {
                 grid.classList.add('hidden');
@@ -418,8 +453,14 @@
                 clickedBtn.classList.remove('bg-dark-card', 'text-dark-muted');
                 clickedBtn.classList.add('active', 'bg-white', 'text-black');
                 
-                renderCards(clickedBtn.getAttribute('data-filter'));
+                currentFilter = clickedBtn.getAttribute('data-filter');
+                renderCards();
             });
+        });
+
+        // Écouteur pour la recherche en temps réel
+        searchInput.addEventListener('input', () => {
+            renderCards();
         });
 
         // Init
