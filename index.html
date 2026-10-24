@@ -1,0 +1,429 @@
+<!DOCTYPE html>
+<html lang="fr" class="scroll-smooth">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Encyclopédie Minecraft - Historique des Versions</title>
+    
+    <!-- Tailwind CSS pour un style moderne et rapide -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Police Google Inter -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                    },
+                    colors: {
+                        dark: {
+                            bg: '#0d1117',
+                            card: '#161b22',
+                            border: '#30363d',
+                            text: '#c9d1d9',
+                            muted: '#8b949e'
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        body {
+            background-color: #0d1117;
+            color: #c9d1d9;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        /* Effets de survol sur les cartes */
+        .version-card {
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            cursor: pointer;
+        }
+        
+        .version-card:hover {
+            transform: translateY(-6px);
+            box-shadow: 0 12px 24px -10px rgba(0, 0, 0, 0.5);
+            border-color: #4b5563;
+        }
+
+        .version-card.java:hover {
+            border-color: rgba(46, 160, 67, 0.6);
+            box-shadow: 0 10px 30px -10px rgba(46, 160, 67, 0.15);
+        }
+
+        .version-card.bedrock:hover {
+            border-color: rgba(88, 166, 255, 0.6);
+            box-shadow: 0 10px 30px -10px rgba(88, 166, 255, 0.15);
+        }
+
+        /* Puces personnalisées */
+        .feature-list li {
+            position: relative;
+            padding-left: 1.25rem;
+            margin-bottom: 0.5rem;
+        }
+        .feature-list li::before {
+            content: '•';
+            position: absolute;
+            left: 0;
+            color: #8b949e;
+        }
+
+        /* Animation d'apparition (Cartes) */
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .animate-fade-in {
+            animation: fadeIn 0.4s ease-out forwards;
+        }
+
+        /* Styles Modale / Scrollbar */
+        .modal-scroll::-webkit-scrollbar {
+            width: 8px;
+        }
+        .modal-scroll::-webkit-scrollbar-track {
+            background: #0d1117; 
+            border-radius: 8px;
+        }
+        .modal-scroll::-webkit-scrollbar-thumb {
+            background: #30363d; 
+            border-radius: 8px;
+        }
+        .modal-scroll::-webkit-scrollbar-thumb:hover {
+            background: #4b5563; 
+        }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col relative">
+
+    <!-- En-tête -->
+    <header class="py-20 px-4 text-center border-b border-dark-border bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-gray-800/20 via-dark-bg to-dark-bg">
+        <div class="max-w-3xl mx-auto">
+            <h1 class="text-4xl md:text-5xl font-bold text-white mb-4 tracking-tight">
+                Encyclopédie <span class="text-transparent bg-clip-text bg-gradient-to-r from-green-400 to-blue-500">Minecraft</span>
+            </h1>
+            <p class="text-lg text-dark-muted">
+                Explorez l'évolution du jeu. Cliquez sur une mise à jour pour en découvrir tous les secrets.
+            </p>
+        </div>
+    </header>
+
+    <!-- Navigation / Filtres -->
+    <div class="sticky top-0 z-40 bg-dark-bg/80 backdrop-blur-md border-b border-dark-border py-4">
+        <div class="max-w-7xl mx-auto px-4 flex justify-center gap-3 overflow-x-auto no-scrollbar">
+            <button class="filter-btn active px-5 py-2 rounded-full text-sm font-medium transition-colors bg-white text-black hover:bg-gray-200" data-filter="all">
+                Toutes les versions
+            </button>
+            <button class="filter-btn px-5 py-2 rounded-full text-sm font-medium transition-colors bg-dark-card text-dark-muted border border-dark-border hover:text-white hover:border-gray-500" data-filter="java">
+                Java Edition
+            </button>
+            <button class="filter-btn px-5 py-2 rounded-full text-sm font-medium transition-colors bg-dark-card text-dark-muted border border-dark-border hover:text-white hover:border-gray-500" data-filter="bedrock">
+                Bedrock Edition
+            </button>
+        </div>
+    </div>
+
+    <!-- Grille Principale -->
+    <main class="flex-1 w-full max-w-7xl mx-auto px-4 py-12">
+        <div id="versions-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <!-- Injecté via JS -->
+        </div>
+        
+        <div id="no-results" class="hidden text-center py-20 text-dark-muted">
+            <p class="text-lg">Aucune version trouvée.</p>
+        </div>
+    </main>
+
+    <!-- Pied de page -->
+    <footer class="py-8 text-center text-dark-muted text-sm border-t border-dark-border mt-auto">
+        <p>© 2026 Encyclopédie Minecraft.</p>
+    </footer>
+
+    <!-- MODALE (Pop-up) -->
+    <div id="version-modal" class="fixed inset-0 z-50 hidden items-center justify-center p-4 sm:p-6 opacity-0 transition-opacity duration-300">
+        <!-- Overlay d'arrière-plan -->
+        <div id="modal-overlay" class="absolute inset-0 bg-black/60 backdrop-blur-sm cursor-pointer"></div>
+        
+        <!-- Contenu de la Modale -->
+        <div id="modal-content" class="relative w-full max-w-2xl bg-dark-card border border-dark-border rounded-2xl shadow-2xl overflow-hidden transform scale-95 transition-transform duration-300 flex flex-col max-h-[90vh]">
+            
+            <!-- Header de la modale -->
+            <div class="px-6 py-4 border-b border-dark-border flex justify-between items-center bg-dark-card sticky top-0 z-10">
+                <div>
+                    <span id="modal-badge" class="inline-block px-2.5 py-1 rounded-full text-xs font-medium border mb-2"></span>
+                    <h2 id="modal-title" class="text-2xl font-bold text-white"></h2>
+                </div>
+                <button id="close-modal-btn" class="text-dark-muted hover:text-white hover:bg-dark-border p-2 rounded-lg transition-colors focus:outline-none">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                </button>
+            </div>
+            
+            <!-- Corps de la modale -->
+            <div class="p-6 overflow-y-auto modal-scroll space-y-8 flex-1">
+                <!-- Description -->
+                <div>
+                    <p id="modal-desc" class="text-dark-text leading-relaxed"></p>
+                    <p id="modal-date" class="text-sm text-dark-muted mt-2 flex items-center gap-1.5">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                        </svg>
+                        <span id="modal-date-text"></span>
+                    </p>
+                </div>
+                
+                <!-- Nouveaux Mobs -->
+                <div id="modal-mobs-container">
+                    <h3 class="text-sm font-semibold text-white uppercase tracking-wider mb-3 border-b border-dark-border pb-1">Nouveaux Mobs</h3>
+                    <ul id="modal-mobs" class="feature-list text-sm"></ul>
+                </div>
+
+                <!-- Nouveaux Blocs/Items -->
+                <div id="modal-blocks-container">
+                    <h3 class="text-sm font-semibold text-white uppercase tracking-wider mb-3 border-b border-dark-border pb-1">Blocs & Objets Phares</h3>
+                    <ul id="modal-blocks" class="feature-list text-sm"></ul>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Logique JavaScript -->
+    <script>
+        // Données enrichies pour les modales
+        const versionsData = [
+            // --- ÉDITION JAVA ---
+            { id: "java-pre-classic", edition: "java", version: "Pre-Classic", title: "Versions de test", date: "10-16 Mai 2009", shortDesc: "Les toutes premières versions de test de Minecraft.", fullDesc: "Phase de développement initiale par Notch. Les bases absolues du jeu avec la génération de blocs basique et les prémices du moteur physique.", mobs: [], blocks: ["Blocs de base (Herbe, Terre, Pierre)"] },
+            { id: "java-classic", edition: "java", version: "Classic (0.0.9a à 0.30a)", title: "Début de la survie", date: "17 Mai - 10 Nov 2009", shortDesc: "Premières mécaniques de jeu et multijoueur.", fullDesc: "Introduction de la création et destruction de blocs. Ajout progressif des premiers types de blocs, de l'eau dynamique et du premier mode multijoueur de test.", mobs: ["Zombie", "Squelette", "Creeper", "Cochon"], blocks: ["Planches", "Verre", "Lave", "Éponge"] },
+            { id: "java-indev", edition: "java", version: "Indev", title: "In Development", date: "23 Déc 2009 - 23 Fév 2010", shortDesc: "Ajout de l'artisanat (crafting) et de l'inventaire.", fullDesc: "Une étape majeure : introduction de l'inventaire, de la grille de fabrication (crafting), des premiers outils, du cycle jour/nuit et de l'éclairage dynamique.", mobs: ["Araignée"], blocks: ["Établi", "Four", "Coffre", "Torches", "Minerais"] },
+            { id: "java-infdev", edition: "java", version: "Infdev", title: "Infinite Development", date: "27 Fév - 30 Juin 2010", shortDesc: "Génération de mondes infinis et rails.", fullDesc: "Le jeu passe d'une carte limitée et carrée à une génération de terrain procédurale théoriquement infinie. Apparition des premiers systèmes de transport.", mobs: ["Slime"], blocks: ["Rails", "Wagonnets", "Sceaux", "Portes"] },
+            { id: "java-alpha", edition: "java", version: "Alpha (v1.0.0 à v1.2.6)", title: "L'âge d'or Alpha", date: "30 Juin - 3 Déc 2010", shortDesc: "Redstone, Nether, et mode Survie affiné.", fullDesc: "Une époque iconique. Introduction des circuits de redstone pour créer des mécanismes, ajout de la terrifiante dimension du Nether (Halloween Update), et apparition du biome hivernal.", mobs: ["Ghast", "Cochon Zombie", "Vache", "Poule"], blocks: ["Poudre de Redstone", "Portail du Nether", "Glace", "Neige"] },
+            { id: "java-beta", edition: "java", version: "Beta (v1.0 à v1.8.1)", title: "Adventure Update", date: "20 Déc 2010 - 11 Nov 2011", shortDesc: "Lits, météo, faim, sprint et villages.", fullDesc: "Transformation majeure du gameplay. Introduction de la barre de faim obligeant à se nourrir, possibilité de courir, apparition de la météo, des villages générés et du redoutable Enderman.", mobs: ["Enderman", "Loup", "Poisson d'argent"], blocks: ["Lits", "Pistons", "Répéteurs", "Demi-dalles", "Gâteau"] },
+            { id: "java-1.0", edition: "java", version: "1.0", title: "Sortie Officielle", date: "18 Nov 2011", shortDesc: "L'Ender Dragon, l'End, et la sortie officielle.", fullDesc: "Présentée à la MineCon 2011, cette version marque la fin de la bêta. Ajout de la dimension de l'End et de son boss, l'Ender Dragon, offrant un générique de fin au jeu. Introduction de l'alchimie et des enchantements.", mobs: ["Ender Dragon", "Blaze", "Magma Cube", "Mooshroom", "Bonhomme de neige", "Villageois"], blocks: ["Table d'enchantement", "Alambic", "Chaudron", "Pierre de l'End"] },
+            { id: "java-1.1", edition: "java", version: "1.1", title: "Langues & Œufs", date: "Janvier 2012", shortDesc: "Ajout des langues et œufs d'apparition.", fullDesc: "Internationalisation du jeu avec l'intégration de dizaines de traductions communautaires et ajout pratique des œufs d'apparition pour le mode Créatif.", mobs: [], blocks: [] },
+            { id: "java-1.2", edition: "java", version: "1.2.1 à 1.2.5", title: "Jungles & Golems", date: "Mars 2012", shortDesc: "Introduction des Jungles et des Golems de fer.", fullDesc: "Ajout du biome tropical luxuriant de la Jungle, de sa faune (Ocelots pour éloigner les creepers), et d'une mécanique pour construire des protecteurs de villages, les Golems de Fer.", mobs: ["Golem de fer", "Ocelot", "Chat"], blocks: ["Bois d'acajou", "Feuilles d'acajou", "Lampes à redstone", "Briques de pierre sculptées"] },
+            { id: "java-1.3", edition: "java", version: "1.3.1 & 1.3.2", title: "Commerce & Émeraudes", date: "Août 2012", shortDesc: "Commerce avec les villageois.", fullDesc: "Les villages deviennent utiles ! Le système de commerce avec les PNJ est introduit, utilisant les émeraudes (nouveau minerai extrêmement rare) comme monnaie d'échange.", mobs: [], blocks: ["Minerai d'émeraude", "Bloc d'émeraude", "Fil de détente", "Crochet", "Livre et plume"] },
+            { id: "java-1.4", edition: "java", version: "1.4.2 à 1.4.7", title: "The Pretty Scary Update", date: "Octobre 2012", shortDesc: "Le Wither, sorcières et enclumes.", fullDesc: "Une mise à jour sur le thème de la peur. Elle ajoute un deuxième boss destructeur (le Wither) à invoquer soi-même, les sorcières dans les marais, et l'enclume pour réparer/renommer ses équipements.", mobs: ["Wither", "Wither Squelette", "Sorcière", "Chauve-souris"], blocks: ["Enclume", "Balise (Beacon)", "Têtes de monstres", "Muret en pierre", "Carotte", "Pomme de terre"] },
+            { id: "java-1.5", edition: "java", version: "1.5 à 1.5.2", title: "The Redstone Update", date: "Mars 2013", shortDesc: "Entonnoirs, comparateurs et automatisation.", fullDesc: "Révolutionne l'ingénierie dans Minecraft. L'ajout des entonnoirs et des comparateurs permet d'automatiser le transfert d'objets et de créer des machines logiques bien plus compactes et complexes.", mobs: [], blocks: ["Entonnoir (Hopper)", "Comparateur de redstone", "Bloc de redstone", "Capteur de lumière", "Dropper", "Minerai de quartz (Nether)"] },
+            { id: "java-1.6", edition: "java", version: "1.6.1 à 1.6.4", title: "The Horse Update", date: "Juillet 2013", shortDesc: "Chevaux, laisses et tapis.", fullDesc: "Axée sur la mobilité et la décoration. Les chevaux (créés à l'origine par le modder DrZhark) permettent de voyager rapidement, tandis que l'argile durcie colore les mondes.", mobs: ["Cheval", "Âne", "Mule", "Cheval Squelette/Zombie"], blocks: ["Bloc de charbon", "Botte de paille", "Tapis", "Argile durcie/colorée", "Laisse", "Armure pour cheval"] },
+            { id: "java-1.7", edition: "java", version: "1.7.2 à 1.7.10", title: "The Update that Changed the World", date: "Octobre 2013", shortDesc: "Nouveaux biomes et générateur de monde.", fullDesc: "Une refonte massive du générateur de terrain. Le monde est désormais classé par températures, évitant qu'un désert ne côtoie un biome neige. Ajout de dizaines de nouveaux biomes spectaculaires.", mobs: ["Saumon", "Poisson-globe", "Poisson-clown"], blocks: ["Vitrail", "Podzol", "Glace compactée", "Bois d'acacia", "Bois de chêne noir", "Nouvelles fleurs"] },
+            { id: "java-1.8", edition: "java", version: "1.8 à 1.8.9", title: "The Bountiful Update", date: "Septembre 2014", shortDesc: "Monuments sous-marins, bannières, lapins.", fullDesc: "Une mise à jour très riche. Apparition des monuments sous-marins avec leurs gardiens et boss, de nouveaux blocs de construction rocheux, de la mécanique des bannières personnalisables, et des blocs de slime rebondissants.", mobs: ["Gardien", "Gardien Ancien", "Lapin", "Endermite"], blocks: ["Prismarine", "Lanterne aquatique", "Diorite", "Andésite", "Granite", "Bloc de Slime", "Bannières", "Porte-armure"] },
+            { id: "java-1.9", edition: "java", version: "1.9 à 1.9.4", title: "The Combat Update", date: "Février 2016", shortDesc: "Boucliers, Élytres, refonte de l'End.", fullDesc: "Controversée mais cruciale, cette version change le système de combat (ajout d'un délai d'attaque, bouclier en main gauche). L'End est totalement repensé avec des îles extérieures abritant des Cités de l'End et le butin ultime : les Élytres.", mobs: ["Shulker"], blocks: ["Bouclier", "Élytres (Elytra)", "Chorus", "Tige de l'End", "Brique de l'End", "Tête de dragon"] },
+            { id: "java-1.10", edition: "java", version: "1.10 à 1.10.2", title: "The Frostburn Update", date: "Juin 2016", shortDesc: "Ours polaires, fossiles, blocs de magma.", fullDesc: "Une mise à jour contrastée ajoutant du contenu aux extrêmes : ours polaires dans les biomes froids, et blocs de magma brûlants générés dans le Nether et l'Overworld. Apparition des fossiles géants sous terre.", mobs: ["Ours polaire", "Vagabond (Stray)", "Husk (Zombi momifié)"], blocks: ["Bloc de magma", "Bloc d'os", "Brique du Nether rouge", "Verrue du Nether (Bloc)"] },
+            { id: "java-1.11", edition: "java", version: "1.11 à 1.11.2", title: "The Exploration Update", date: "Novembre 2016", shortDesc: "Manoirs, Shulker Boxes, lamas.", fullDesc: "Encourage les expéditions lointaines avec les cartes au trésor menant aux immenses Manoirs hantés par les Illageois. Ajout de la Boîte de Shulker, un coffre portable révolutionnant le stockage.", mobs: ["Illageois (Vindicator, Evoker)", "Vex", "Lama"], blocks: ["Boîte de Shulker", "Observateur (Observer)", "Totem d'immortalité", "Carte d'exploration"] },
+            { id: "java-1.12", edition: "java", version: "1.12 à 1.12.2", title: "The World of Color Update", date: "Juin 2017", shortDesc: "Béton, perroquets, livre de recettes.", fullDesc: "Une explosion de couleurs vives pour les constructeurs avec l'ajout du béton et de la terre cuite émaillée. Le livre de recettes est introduit pour aider les joueurs (notamment les débutants) à connaître les crafts sans wiki externe.", mobs: ["Perroquet", "Illusionniste (non utilisé)"], blocks: ["Béton", "Poudre de béton", "Terre cuite émaillée", "Lits colorés"] },
+            { id: "java-1.13", edition: "java", version: "1.13 à 1.13.2", title: "Update Aquatic", date: "Juillet 2018", shortDesc: "Océans vivants, tortues, coraux.", fullDesc: "Métamorphose complète des océans qui passent de vastes étendues d'eau vides à des écosystèmes grouillants de vie, avec des forêts de kelp, des récifs coralliens, des épaves à piller et des dauphins.", mobs: ["Tortue", "Dauphin", "Noyé (Drowned)", "Poissons (Cabillaud, Saumon, Tropical, Globe)", "Fantôme (Phantom)"], blocks: ["Corail", "Vétiver (Kelp)", "Glace bleue", "Conduit", "Cornichon de mer", "Trident"] },
+            { id: "java-1.14", edition: "java", version: "1.14 à 1.14.4", title: "Village & Pillage", date: "Avril 2019", shortDesc: "Pillards, métiers, refonte des villages.", fullDesc: "Refonte architecturale intégrale de tous les villages selon leur biome. Les villageois adoptent des routines, dorment, et ont des blocs de métier spécifiques. Ajout des raids défensifs contre les Pillards.", mobs: ["Pillard (Pillager)", "Ravageur (Ravager)", "Renard", "Chat (séparé de l'ocelot)", "Panda", "Marchand ambulant"], blocks: ["Fumeur", "Haut-fourneau", "Meule", "Tailleur de pierre", "Échafaudage", "Feu de camp", "Tonneau", "Cloche", "Baies sucrées", "Arbalète"] },
+            { id: "java-1.15", edition: "java", version: "1.15 à 1.15.2", title: "Buzzy Bees", date: "Décembre 2019", shortDesc: "Abeilles, miel et optimisation.", fullDesc: "Une mise à jour orientée sur l'ajout d'une mécanique agricole avec les adorables abeilles, la pollinisation des cultures et la récolte de miel, tout en se concentrant lourdement sur la correction de bugs techniques majeurs.", mobs: ["Abeille"], blocks: ["Ruche", "Nid d'abeilles", "Bloc de miel", "Bloc de rayons de miel"] },
+            { id: "java-1.16", edition: "java", version: "1.16 à 1.16.5", title: "The Nether Update", date: "Juin 2020", shortDesc: "Netherite, Piglins, refonte du Nether.", fullDesc: "Une des plus importantes refontes de l'histoire du jeu. Le Nether n'est plus une simple grotte rouge mais un monde à part entière divisé en 5 biomes distincts, doté de nouvelles faunes (Piglins), végétations, et du minerai de Netherite surpassant le diamant.", mobs: ["Piglin", "Piglin barbare (Brute)", "Hoglin", "Arpenteur (Strider)", "Zoglin"], blocks: ["Débris antiques", "Netherite", "Bois carmin/biscornu", "Ancre de réapparition", "Terre d'âmes", "Feu des âmes", "Basalte", "Roche noire"] },
+            { id: "java-1.17", edition: "java", version: "1.17 & 1.17.1", title: "Caves & Cliffs: Part I", date: "Juin 2021", shortDesc: "Axolotls, cuivre, géodes d'améthyste.", fullDesc: "Première partie de l'ambitieuse refonte des grottes et montagnes. Pour éviter de briser les mondes existants, Mojang n'ajoute que les matériaux (cuivre, améthyste), la flore (mousse, spéléothèmes) et les créatures (axolotls, chèvres) avant de toucher au générateur de terrain.", mobs: ["Axolotl", "Chèvre", "Poulpe luisant"], blocks: ["Cuivre (qui s'oxyde)", "Améthyste", "Mousse", "Spéléothème (Dripstone)", "Capteur Sculk", "Lichen luisant", "Neige poudreuse", "Longue-vue"] },
+            { id: "java-1.18", edition: "java", version: "1.18 à 1.18.2", title: "Caves & Cliffs: Part II", date: "Novembre 2021", shortDesc: "Nouvelle hauteur de monde, grottes 3D.", fullDesc: "La prouesse technique. Change radicalement et définitivement la forme des mondes Minecraft. Les montagnes deviennent gigantesques (jusqu'à Y=320) et de vastes réseaux de grottes (aquifères, immenses cavernes fromagères) s'étendent désormais jusqu'en Y=-64.", mobs: [], blocks: ["Nouveaux générateurs de grottes", "Minerai de fer/cuivre en filons géants", "Disque de musique 'Otherside'"] },
+            { id: "java-1.19", edition: "java", version: "1.19 à 1.19.4", title: "The Wild Update", date: "Juin 2022", shortDesc: "Warden, Allay, grenouilles, mangroves.", fullDesc: "Ajoute deux ambiances opposées : l'horreur des profondeurs avec le biome Deep Dark, ses Anciennes Cités et son gardien invincible (le Warden) ; et la tranquillité de la surface avec le marais à mangroves luxuriant et ses grenouilles.", mobs: ["Warden", "Allay", "Grenouille", "Têtard"], blocks: ["Blocs de Sculk (Hurleur, Catalyseur)", "Bois de palétuvier (Mangrove)", "Boue et briques de boue", "Bateau avec coffre", "Corne de chèvre", "Boussole de récupération"] },
+            { id: "java-1.20", edition: "java", version: "1.20 à 1.20.6", title: "Trails & Tales", date: "Juin 2023", shortDesc: "Archéologie, chameaux, biome cerisiers.", fullDesc: "Focus sur l'expression créative et la narration. Introduction très attendue de l'archéologie (brosser du sable/gravier suspect), de la personnalisation poussée des armures avec les modèles de forge, et du magnifique biome de la forêt de cerisiers.", mobs: ["Sniffer (Gagnant du Mob Vote)", "Chameau"], blocks: ["Bois de cerisier", "Bois de bambou", "Sable/Gravier suspect", "Ornements d'armures (Smithing Templates)", "Pots décorés", "Panneaux suspendus", "Bibliothèque sculptée"] },
+            { id: "java-1.21", edition: "java", version: "1.21 & 1.21.1", title: "Tricky Trials", date: "Juin 2024", shortDesc: "Chambres des épreuves, Crafter, Masse.", fullDesc: "Centrée sur le combat et l'ingéniosité. Ajoute les Chambres des épreuves (donjons générés aléatoirement remplis de générateurs adaptatifs), la Masse (arme surpuissante attaquant en chute), et le Crafter automatisant la fabrication avec la redstone.", mobs: ["Le Breeze", "Le Bogged (Squelette des marais)"], blocks: ["Crafter", "Blocs de cuivre (Portes, trappes, grilles, ampoules)", "Générateur d'épreuves (Trial Spawner)", "La Masse", "Tuf (Briques, murs)"] },
+            
+            // --- JAVA : L'ÈRE DES GAME DROPS ---
+            { id: "java-1.21.2", edition: "java", version: "1.21.2 à 1.21.4", title: "Bundles & Bravery", date: "Fin 2024", shortDesc: "Sacs, Jardin Pâle, Creaking.", fullDesc: "Transition vers le nouveau modèle de mises à jour fréquentes. Introduit enfin les sacs (bundles) annoncés en 2020 pour la gestion d'inventaire, le biome nocturne et inquiétant du Jardin Pâle, et son protecteur végétal invincible, le Creaking.", mobs: ["Le Creaking"], blocks: ["Sacs (Bundles)", "Bois pâle", "Cœur de Creaking (Creaking Heart)", "Mousse pâle"] },
+            { id: "java-26.1", edition: "java", version: "26.1", title: "Tiny Takeover", date: "Mars 2026", shortDesc: "Horde Miniature.", fullDesc: "Première mise à jour sous la nouvelle nomenclature annuelle de Mojang (Game Drops). Thématique centrée sur des entités et défis de petite taille.", mobs: ["(Contenu à venir)"], blocks: ["(Contenu à venir)"] },
+            { id: "java-26.2", edition: "java", version: "26.2", title: "Chaos Cubed", date: "Juin 2026", shortDesc: "Chaos Cubique.", fullDesc: "Deuxième livraison de contenu de l'année 2026.", mobs: ["(Contenu à venir)"], blocks: ["(Contenu à venir)"] },
+            { id: "java-26.3", edition: "java", version: "26.3", title: "Wilderness Bound", date: "Septembre 2026", shortDesc: "Appel de la Nature.", fullDesc: "Troisième drop de 2026 orienté sur l'expansion de la faune, de la flore et de la nature sauvage.", mobs: ["(Contenu à venir)"], blocks: ["(Contenu à venir)"] },
+            { id: "java-26.4", edition: "java", version: "26.4", title: "Fourth Drop 2026", date: "Fin 2026", shortDesc: "Dernière mise à jour 2026.", fullDesc: "Quatrième et dernière livraison de contenu prévue pour l'année 2026.", mobs: ["(Contenu à venir)"], blocks: ["(Contenu à venir)"] },
+
+            // --- ÉDITION BEDROCK ---
+            { id: "bedrock-0.1", edition: "bedrock", version: "0.1.0 à 0.1.3", title: "Pocket Edition Alpha", date: "Août 2011", shortDesc: "Version initiale exclusive au Xperia Play.", fullDesc: "La toute première itération de la Pocket Edition développée par Aron Nieminen. Uniquement disponible sur le smartphone Sony Xperia Play à sa sortie. Mondes de 256x256 blocs et mode Créatif uniquement avec 36 blocs disponibles.", mobs: [], blocks: ["Génération basique", "Laine", "Minerai d'or"] },
+            { id: "bedrock-0.2", edition: "bedrock", version: "0.2.0 à 0.2.1", title: "Survie & Moutons", date: "Février 2012", shortDesc: "Ajout du mode survie et des moutons.", fullDesc: "Le mode Survie fait son apparition sur mobile, apportant une véritable boucle de gameplay : la santé, l'oxygène, le cycle jour/nuit et la récolte de ressources (sans artisanat poussé).", mobs: ["Mouton", "Zombie", "Cochon"], blocks: ["Outils (Générés/Donnés)", "Clôtures", "Portillons"] },
+            { id: "bedrock-0.3", edition: "bedrock", version: "0.3.0 à 0.3.3", title: "L'Artisanat MATIS", date: "Avril 2012", shortDesc: "Établi d'artisanat et outils.", fullDesc: "Introduction du système MATIS (Minecraft Advanced Touch Interface System), permettant de crafter des objets via une interface dédiée au tactile sans avoir besoin de disposer les blocs dans une grille comme sur PC.", mobs: ["Vache", "Poulet"], blocks: ["Établi", "Minerais de Fer/Charbon/Diamant", "Briques"] },
+            { id: "bedrock-0.4", edition: "bedrock", version: "0.4.0", title: "La menace s'étend", date: "Septembre 2012", shortDesc: "Ajout des lits, des coffres et des creepers.", fullDesc: "Le danger s'accentue avec l'apparition des Creepers sur mobile. Pour survivre, les joueurs peuvent désormais stocker leurs objets dans des coffres et dormir dans des lits pour passer la nuit.", mobs: ["Creeper", "Squelette", "Araignée"], blocks: ["Lits", "Coffres", "Terre cultivée", "Blé", "Pommes"] },
+            { id: "bedrock-0.5", edition: "bedrock", version: "0.5.0", title: "Le Faux Nether", date: "Novembre 2012", shortDesc: "Introduction du réacteur du Nether.", fullDesc: "Les smartphones de l'époque n'étant pas assez puissants pour charger une deuxième dimension, Mojang contourne le problème avec le Réacteur du Nether : une structure générant une tour géante en Netherrack dans l'Overworld, remplie de ressources du Nether.", mobs: ["Cochon zombie"], blocks: ["Noyau de réacteur du Nether", "Bloc de melon", "Glowstone"] },
+            { id: "bedrock-0.6", edition: "bedrock", version: "0.6.0 & 0.6.1", title: "Quartz et Ciels", date: "Janvier 2013", shortDesc: "Blocs de quartz et ciel texturé.", fullDesc: "Mise à jour esthétique et de construction. Ajout de l'ensemble des blocs de quartz, des jeunes pousses d'arbres, et d'une nette amélioration graphique avec l'ajout de nuages et d'un ciel texturé imitant la version PC.", mobs: ["Bébés animaux"], blocks: ["Blocs de quartz", "Dalles de Netherrack", "Pancartes", "Escaliers en grès/pierre"] },
+            { id: "bedrock-0.7", edition: "bedrock", version: "0.7.0 à 0.7.6", title: "Seaux & Serveurs", date: "Juin 2013", shortDesc: "Ajout des seaux, du feu et des œufs de monstres.", fullDesc: "Une avancée majeure pour la survie et le multijoueur. Ajout de la mécanique des fluides (seaux de lave/eau), du feu, et surtout des premiers tests du service de serveurs officiels 'Minecraft Realms'.", mobs: [], blocks: ["Seau", "Feu", "Œufs d'apparition", "Gâteau"] },
+            { id: "bedrock-0.8", edition: "bedrock", version: "0.8.0", title: "L'ère des rails", date: "Décembre 2013", shortDesc: "Rails, wagonnets et textures améliorées.", fullDesc: "Les joueurs peuvent enfin créer de véritables réseaux de transport automatiques grâce aux rails motorisés et aux wagonnets. Les textures, la lumière et le rendu 3D sont grandement améliorés et s'alignent avec la version Java.", mobs: [], blocks: ["Rails", "Rails propulseurs", "Wagonnets", "Éponge", "Bois de bouleau/épicéa/jungle", "Betteraves"] },
+            { id: "bedrock-0.9", edition: "bedrock", version: "0.9.0", title: "Vers l'Infini", date: "Juillet 2014", shortDesc: "Mondes infinis, loups et grottes.", fullDesc: "Le plus grand bond technologique de l'édition Pocket : les cartes de 256x256 disparaissent au profit de la génération de mondes véritablement infinis. L'algorithme intègre la nouvelle génération de biomes de la 1.7 Java et crée d'immenses réseaux de grottes souterraines.", mobs: ["Loup", "Enderman", "Mooshroom", "Silverfish", "Slime"], blocks: ["Génération de grottes", "Mycélium", "Lianes", "Nénuphars"] },
+            { id: "bedrock-0.10", edition: "bedrock", version: "0.10.0 à 0.10.5", title: "Mines et Créativité", date: "Novembre 2014", shortDesc: "Mines abandonnées et cycles créatifs.", fullDesc: "Ajout d'améliorations graphiques (brouillard biome par biome, eau trouble dans les marais), du cycle jour/nuit fonctionnel en mode Créatif, et de la génération des gigantesques puits de mines abandonnés sous terre.", mobs: [], blocks: ["Mines abandonnées", "Barrières en bois (toutes les variantes)", "Portillons"] },
+            { id: "bedrock-0.11", edition: "bedrock", version: "0.11.0 & 0.11.1", title: "Navigation & Skins", date: "Juin 2015", shortDesc: "Bateaux, calmars et effets de potions.", fullDesc: "Une version riche en fonctionnalités. Les joueurs peuvent pour la première fois importer leurs propres skins personnalisés (ou utiliser les packs payants). Ajout d'une version unique des bateaux avec rames, des calmars et de la pêche.", mobs: ["Calmar", "Bébé zombie", "Chauve-souris", "Cave Spider", "Zombie Pigman (bébé)", "Araignée chevauchée"], blocks: ["Bateaux (nécessitant des pelles)", "Canne à pêche", "Blocs de chemin d'herbe"] },
+            { id: "bedrock-0.12", edition: "bedrock", version: "0.12.1 à 0.12.3", title: "L'enfer s'ouvre", date: "Septembre 2015", shortDesc: "Le vrai Nether, barres de faim et ocelots.", fullDesc: "Une mise à jour massive réduisant considérablement l'écart avec l'édition PC. Introduction de la véritable dimension du Nether (remplaçant le vieux réacteur), de la météo dynamique (pluie/neige), de la barre de faim remplaçant la régénération passive, et du système d'enchantements.", mobs: ["Blaze", "Ghast", "Wither Squelette", "Ocelot", "Golem de fer", "Golem de neige", "Villageois PNJ"], blocks: ["Portail du Nether", "Table d'enchantement", "Enclume", "Alambic", "Tête de Wither"] },
+            { id: "bedrock-0.13", edition: "bedrock", version: "0.13.0 à 0.13.2", title: "Redstone (Partie 1)", date: "Novembre 2015", shortDesc: "Premiers circuits de Redstone.", fullDesc: "L'ingénierie arrive enfin sur mobile et tablettes. Implémentation des bases de l'automatisation avec la poudre de redstone fonctionnelle, permettant de relier des mécanismes simples.", mobs: ["Lapin"], blocks: ["Câble de redstone", "Torche de redstone", "Levier", "Plaques de pression", "Boutons", "Détecteur de lumière du jour", "Lampes à redstone", "Portes en fer"] },
+            { id: "bedrock-0.14", edition: "bedrock", version: "0.14.0 à 0.14.3", title: "Redstone (Partie 2)", date: "Février 2016", shortDesc: "Entonnoirs, chaudrons et cartes.", fullDesc: "Poursuite et complexification du système redstone avec l'ajout des blocs d'inventaire interactifs (entonnoirs, distributeurs). Ajout des chaudrons permettant de teindre les armures en cuir, d'un système de cartes pour l'exploration, et des chapeaux de citrouilles.", mobs: ["Sorcière"], blocks: ["Entonnoir (Hopper)", "Distributeur", "Dropper", "Chaudron", "Carte d'exploration", "Cadre (Item Frame)", "Bloc de Slime"] },
+            { id: "bedrock-0.15", edition: "bedrock", version: "0.15.0 à 0.15.10", title: "The Friendly Update", date: "Juin 2016", shortDesc: "Pistons, chevaux et Xbox Live.", fullDesc: "Historique pour l'écosystème : intégration native du Xbox Live permettant le multijoueur cross-platform fluide via les listes d'amis sur Realms. Achèvement de la redstone avec l'arrivée tant attendue des pistons. Exclusivité Bedrock temporaire : ajout de l'Observateur.", mobs: ["Cheval", "Âne", "Mule", "Cheval Zombie/Squelette", "Stray (Vagabond)", "Husk (Momie)"], blocks: ["Piston", "Piston collant", "Observateur (Observer)", "Balise (Beacon - via code/mods temporairement)", "Laisse", "Armure pour cheval", "Flèches à effets"] },
+            { id: "bedrock-0.16", edition: "bedrock", version: "0.16.0 à 0.16.2", title: "The Boss Update", date: "Octobre 2016", shortDesc: "Commandes textuelles et le Wither.", fullDesc: "Dernière mise à jour '0.x'. Introduit des éléments de haut niveau de difficulté avec le redoutable boss Wither et les monuments sous-marins avec leurs Gardiens. Surtout, elle ajoute la console de commandes textuelles (cheats et /commands) pour modifier le monde à la volée.", mobs: ["Wither", "Gardien", "Gardien Ancien"], blocks: ["Prismarine (toutes variantes)", "Lanterne aquatique", "Éponge (humide/sèche)", "Balise (Beacon entièrement fonctionnelle)", "Étoile du Nether"] },
+            { id: "bedrock-1.0", edition: "bedrock", version: "1.0.0 à 1.0.9", title: "The Ender Update", date: "Décembre 2016", shortDesc: "L'End et le Dragon (Sortie Complète).", fullDesc: "La 'Pocket Edition' quitte symboliquement sa phase Alpha/Beta. Ajout de la dernière grande dimension manquante : l'End. Les joueurs mobiles peuvent enfin vaincre l'Ender Dragon, explorer les cités de l'End et planer avec les Élytres. La hauteur maximale du monde passe à 256 blocs.", mobs: ["Ender Dragon", "Endermite", "Shulker", "Ours Polaire"], blocks: ["Pierre de l'End", "Brique de l'End", "Plante Chorus", "Tige de l'End", "Élytres (Elytra)", "Tête de Dragon", "Cristal de l'End", "Igloos"] },
+            { id: "bedrock-1.1", edition: "bedrock", version: "1.1.0 à 1.1.7", title: "The Discovery Update", date: "Juin 2017", shortDesc: "Manoirs, lamas et béton.", fullDesc: "Compilation rattrapant le contenu des versions 1.11 et 1.12 Java. Apporte les structures géantes des Manoirs hantés, le stockage portable (Shulker Boxes), les cracheurs lamas, et une refonte complète de la palette de couleurs avec le béton et la terre cuite émaillée.", mobs: ["Illageois (Vindicator, Evoker)", "Vex", "Lama"], blocks: ["Béton", "Poudre de béton", "Terre cuite émaillée", "Boîte de Shulker (Shulker Box)", "Totem d'immortalité", "Cartes d'exploration"] },
+            { id: "bedrock-1.2", edition: "bedrock", version: "1.2.0 à 1.2.13", title: "Better Together Update", date: "Septembre 2017", shortDesc: "Cross-play total et nouveau moteur.", fullDesc: "Le point de bascule de Minecraft. Les éditions 'Pocket', 'Windows 10', 'Xbox One' et 'Nintendo Switch' fusionnent sur un même moteur unifié appelé 'Bedrock Engine'. Le suffixe 'Edition' disparaît de l'écran titre. Le cross-play intégral entre consoles, PC et mobiles devient une réalité. Lancement du Marketplace.", mobs: ["Perroquet"], blocks: ["Bannières", "Vitre teintée", "Terre stérile (Coarse Dirt)", "Armure en maille craftable (Bedrock uniquement)", "Livre de recettes", "Tête de joueur"] },
+            { id: "bedrock-1.4-1.7", edition: "bedrock", version: "1.4.0 à 1.7.0", title: "Update Aquatic", date: "Mai - Septembre 2018", shortDesc: "Océans, dauphins, monstres des mers.", fullDesc: "Déployée de manière asynchrone en plusieurs grosses phases sur l'édition Bedrock. Elle revitalise les océans avec une parité totale avec Java : Kelp, coraux, épaves, trident, dauphins et noyés (qui sont bien plus menaçants sur Bedrock grâce à un taux d'apparition élevé avec trident).", mobs: ["Tortue", "Dauphin", "Noyé (Drowned)", "Poissons tropicaux", "Saumon", "Morue", "Poisson-globe", "Fantôme (Phantom)"], blocks: ["Corail (bloc, éventail, mort)", "Vétiver (Kelp)", "Glace bleue", "Conduit", "Bois écorcé", "Boutons/Plaques en bois variés", "Trident", "Écaille de tortue"] },
+            { id: "bedrock-1.8-1.11", edition: "bedrock", version: "1.8.0 à 1.11.0", title: "Village & Pillage", date: "Décembre 2018 - Avril 2019", shortDesc: "Pillards, pandas et refonte des PNJ.", fullDesc: "Une autre mise à jour séquencée. La 1.8 introduit en avance les pandas (via un partenariat WWF) et les échafaudages. La 1.11 finalise la refonte de l'architecture des villages, ajoute les nouveaux métiers des villageois et le système de raid des Pillards avec l'effet de 'Mauvais Présage'.", mobs: ["Pillard (Pillager)", "Ravageur", "Bête de somme (nom temporaire)", "Renard", "Chat", "Panda"], blocks: ["Fumeur", "Haut-fourneau", "Meule", "Tailleur de pierre", "Échafaudage", "Feu de camp", "Tonneau", "Cloche", "Bambou", "Arbalète", "Métier à tisser"] },
+            { id: "bedrock-1.12-1.13", edition: "bedrock", version: "1.12.0 & 1.13.0", title: "Stabilité & Scripting", date: "Juillet 2019", shortDesc: "Mises à jour de stabilité et outils créateurs.", fullDesc: "Des versions techniques intermédiaires visant à solidifier le moteur après d'énormes ajouts. Elles introduisent le bloc de structure (Structure Block) pour exporter des bâtiments 3D, le Light Block (invisible) pour les cartographes, et l'API de caméras scriptées pour les créateurs du Marketplace.", mobs: ["Renard (finalisation)"], blocks: ["Bloc de Structure (Structure Block)", "Bloc de Lumière (Light Block)", "Structure Void"] },
+            { id: "bedrock-1.14", edition: "bedrock", version: "1.14.0 à 1.14.60", title: "Buzzy Bees", date: "Décembre 2019", shortDesc: "Abeilles et miel.", fullDesc: "Ajout des abeilles neutres, de la mécanique de miel, et parité complète avec Java pour cette fonctionnalité. Introduit les mécaniques agricoles liées à la pollinisation accélérant la pousse des cultures, ainsi que le très adhésif Bloc de Miel utile en redstone.", mobs: ["Abeille"], blocks: ["Ruche (naturelle)", "Nid d'abeilles (craftable)", "Bloc de miel", "Bloc de rayons de miel"] },
+            { id: "bedrock-1.16", edition: "bedrock", version: "1.16.0 à 1.16.221", title: "The Nether Update", date: "Juin 2020", shortDesc: "Refonte du Nether et parité de sortie.", fullDesc: "Le tournant de la parité : à partir de cette version, les numéros majeurs et les dates de sortie de Bedrock et Java sont officiellement alignés mondialement. Refonte totale de la dimension du Nether (Biomes, Piglins, Netherite). Ajout de la commande /emote sur Bedrock.", mobs: ["Piglin", "Piglin barbare (Brute)", "Hoglin", "Arpenteur (Strider)", "Zoglin"], blocks: ["Débris antiques", "Lingot/Équipement de Netherite", "Bois carmin/biscornu", "Ancre de réapparition", "Feu des âmes", "Basalte", "Roche noire", "Cible"] },
+            { id: "bedrock-1.17", edition: "bedrock", version: "1.17.0 à 1.17.41", title: "Caves & Cliffs: Part I", date: "Juin 2021", shortDesc: "Axolotls, cuivre, géodes.", fullDesc: "Sortie simultanée. Intègre les nouveaux blocs de minéraux, géodes d'améthyste, cuivre qui s'oxyde avec le temps, et les adorables axolotls amphibiens sans encore modifier la génération profonde du monde.", mobs: ["Axolotl", "Chèvre", "Poulpe luisant"], blocks: ["Minerai/Bloc de Cuivre", "Améthyste", "Calcite", "Tuf", "Bloc de mousse", "Feuilles d'azalée", "Spéléothème", "Longue-vue", "Paratonnerre"] },
+            { id: "bedrock-1.18", edition: "bedrock", version: "1.18.0 à 1.18.33", title: "Caves & Cliffs: Part II", date: "Novembre 2021", shortDesc: "Nouvelle hauteur de monde.", fullDesc: "La deuxième partie implémente le nouveau moteur de génération de monde sur Bedrock. La parité est atteinte sur l'algorithme : une graine (seed) générera désormais quasiment le même terrain, les mêmes immenses montagnes et grottes sur Bedrock et Java.", mobs: [], blocks: ["Minerais en filons géants", "Génération augmentée (Y=320 à Y=-64)", "Disque de musique 'Otherside'"] },
+            { id: "bedrock-1.19", edition: "bedrock", version: "1.19.0 à 1.19.83", title: "The Wild Update", date: "Juin 2022", shortDesc: "Warden, Allay, grenouilles.", fullDesc: "Ajout simultané du Deep Dark (avec le Warden aveugle guidé par le son) et du biome des Mangroves. Fait notable : le mode Spectateur, très attendu sur consoles/mobiles depuis des années, est discrètement ajouté en tant que fonctionnalité expérimentale sur Bedrock.", mobs: ["Warden", "Allay", "Grenouille", "Têtard"], blocks: ["Blocs de Sculk", "Bois de palétuvier (Mangrove)", "Boue", "Brique de boue", "Bateau avec coffre", "Corne de chèvre"] },
+            { id: "bedrock-1.20", edition: "bedrock", version: "1.20.0 à 1.20.81", title: "Trails & Tales", date: "Juin 2023", shortDesc: "Archéologie, chameaux, biome cerisiers.", fullDesc: "Déploiement synchronisé apportant l'archéologie, la possibilité de personnaliser les armures via la forge, et le magnifique biome des cerisiers en fleurs. La parité s'améliore encore (personnalisation des boucliers avec bannières enfin disponible sur Bedrock).", mobs: ["Sniffer", "Chameau"], blocks: ["Bois de cerisier", "Sable/Gravier suspect", "Bois de bambou", "Ornements d'armures (Smithing Templates)", "Panneaux suspendus", "Bibliothèque sculptée"] },
+            { id: "bedrock-1.21", edition: "bedrock", version: "1.21.0 à 1.21.51", title: "Tricky Trials & Drops", date: "Juin - Déc 2024", shortDesc: "Chambres des épreuves, Sacs, Jardin Pâle.", fullDesc: "Sortie du donjon généré aléatoirement 'Trial Chambers' avec ses épreuves. Au fil de la fin d'année 2024, les ajouts du nouveau système de 'Game Drops' (Les Sacs d'inventaire 'Bundles' et le biome horrifique 'Jardin Pâle') sont intégrés dans le cycle 1.21.x Bedrock de manière transparente.", mobs: ["Le Breeze", "Le Bogged", "Le Creaking"], blocks: ["Crafter", "Blocs de cuivre (Grilles, Ampoules, Portes)", "Sacs (Bundles)", "Bois pâle", "Mousse pâle", "Cœur de Creaking"] },
+            
+            // --- BEDROCK : L'ÈRE DES GAME DROPS (PARALLÈLES) ---
+            { id: "bedrock-26.10", edition: "bedrock", version: "26.10", title: "Tiny Takeover", date: "Mars 2026", shortDesc: "Parallèle au Game Drop Java 26.1.", fullDesc: "Nouvelle numérotation pour l'édition Bedrock afin de correspondre visuellement aux 'Game Drops' de l'année 2026. Cette version contient les mêmes ajouts que la version Java 26.1.", mobs: ["(Contenu à venir)"], blocks: ["(Contenu à venir)"] },
+            { id: "bedrock-26.30", edition: "bedrock", version: "26.30", title: "Chaos Cubed", date: "Juin 2026", shortDesc: "Parallèle au Game Drop Java 26.2.", fullDesc: "La numérotation Bedrock (.10, .30) s'aligne sur les sorties majeures de contenu du moteur global. Contenu identique à Java 26.2.", mobs: ["(Contenu à venir)"], blocks: ["(Contenu à venir)"] },
+            { id: "bedrock-26.50", edition: "bedrock", version: "26.50 à 26.60", title: "Wilderness Bound", date: "Sept - Oct 2026", shortDesc: "Parallèle au Game Drop Java 26.3.", fullDesc: "Mises à jour liées à la nature sauvage, développées et publiées en stricte parité avec la version PC/Mac/Linux.", mobs: ["(Contenu à venir)"], blocks: ["(Contenu à venir)"] },
+            { id: "bedrock-26.70", edition: "bedrock", version: "26.70", title: "Fourth Drop 2026", date: "Fin 2026", shortDesc: "Dernier Drop 2026.", fullDesc: "Dernière livraison majeure de l'année 2026 pour le moteur Bedrock unifiant Consoles, Mobiles et Windows.", mobs: ["(Contenu à venir)"], blocks: ["(Contenu à venir)"] }
+        ];
+
+        const grid = document.getElementById('versions-grid');
+        const filterBtns = document.querySelectorAll('.filter-btn');
+        
+        // Éléments de la Modale
+        const modal = document.getElementById('version-modal');
+        const modalOverlayBg = document.getElementById('modal-overlay');
+        const modalContent = document.getElementById('modal-content');
+        const closeBtn = document.getElementById('close-modal-btn');
+
+        // Générer une carte HTML
+        function createCardHTML(data) {
+            const isJava = data.edition === 'java';
+            const badgeColor = isJava ? 'text-[#2ea043] bg-[#2ea043]/10 border-[#2ea043]/20' : 'text-[#58a6ff] bg-[#58a6ff]/10 border-[#58a6ff]/20';
+            const badgeText = isJava ? 'Java Edition' : 'Bedrock Edition';
+            
+            return `
+                <article onclick="openModal('${data.id}')" class="version-card ${data.edition} bg-dark-card border border-dark-border rounded-xl p-6 flex flex-col h-full animate-fade-in group">
+                    <div class="flex justify-between items-start mb-4">
+                        <div>
+                            <span class="inline-block px-2.5 py-1 rounded-full text-xs font-medium border ${badgeColor} mb-3">
+                                ${badgeText}
+                            </span>
+                            <h2 class="text-2xl font-bold text-white tracking-tight group-hover:text-blue-400 transition-colors">${data.version}</h2>
+                        </div>
+                    </div>
+                    
+                    <h3 class="text-lg font-medium text-white mb-2">${data.title}</h3>
+                    <p class="text-sm text-dark-muted mb-4 line-clamp-2">${data.shortDesc}</p>
+                    
+                    <div class="mt-auto pt-4 border-t border-dark-border/50 flex justify-between items-center">
+                        <span class="text-xs text-dark-muted flex items-center gap-1">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
+                            ${data.date}
+                        </span>
+                        <span class="text-xs font-medium text-blue-500 opacity-0 group-hover:opacity-100 transition-opacity">Voir plus &rarr;</span>
+                    </div>
+                </article>
+            `;
+        }
+
+        // Afficher les cartes avec filtre
+        function renderCards(filter = 'all') {
+            grid.innerHTML = ''; 
+            const filteredData = versionsData.filter(v => filter === 'all' || v.edition === filter);
+            
+            if (filteredData.length === 0) {
+                grid.classList.add('hidden');
+                document.getElementById('no-results').classList.remove('hidden');
+            } else {
+                grid.classList.remove('hidden');
+                document.getElementById('no-results').classList.add('hidden');
+                filteredData.forEach(version => {
+                    grid.insertAdjacentHTML('beforeend', createCardHTML(version));
+                });
+            }
+        }
+
+        // --- GESTION DE LA MODALE ---
+
+        function openModal(id) {
+            const data = versionsData.find(v => v.id === id);
+            if (!data) return;
+
+            // Remplir les données
+            const isJava = data.edition === 'java';
+            const badge = document.getElementById('modal-badge');
+            
+            badge.className = `inline-block px-2.5 py-1 rounded-full text-xs font-medium border mb-2 ${isJava ? 'text-[#2ea043] bg-[#2ea043]/10 border-[#2ea043]/20' : 'text-[#58a6ff] bg-[#58a6ff]/10 border-[#58a6ff]/20'}`;
+            badge.innerText = isJava ? 'Java Edition' : 'Bedrock Edition';
+            
+            document.getElementById('modal-title').innerText = `${data.version} - ${data.title}`;
+            document.getElementById('modal-desc').innerText = data.fullDesc;
+            document.getElementById('modal-date-text').innerText = `Sortie le ${data.date}`;
+
+            // Remplir les listes
+            populateList('modal-mobs', 'modal-mobs-container', data.mobs);
+            populateList('modal-blocks', 'modal-blocks-container', data.blocks);
+
+            // Afficher la modale (Animation CSS)
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+            
+            // Empêcher le scroll du body
+            document.body.style.overflow = 'hidden';
+            
+            // Délai minuscule pour que le navigateur prenne en compte le display:flex avant d'animer l'opacité
+            requestAnimationFrame(() => {
+                modal.classList.remove('opacity-0');
+                modalContent.classList.remove('scale-95');
+                modalContent.classList.add('scale-100');
+            });
+        }
+
+        function closeModal() {
+            // Lancer l'animation de fermeture
+            modal.classList.add('opacity-0');
+            modalContent.classList.remove('scale-100');
+            modalContent.classList.add('scale-95');
+            
+            // Cacher complètement après l'animation (300ms = durée transition)
+            setTimeout(() => {
+                modal.classList.add('hidden');
+                modal.classList.remove('flex');
+                document.body.style.overflow = ''; // Restaurer le scroll
+            }, 300);
+        }
+
+        function populateList(ulId, containerId, itemsArray) {
+            const ul = document.getElementById(ulId);
+            const container = document.getElementById(containerId);
+            ul.innerHTML = '';
+            
+            if (itemsArray && itemsArray.length > 0) {
+                container.style.display = 'block';
+                itemsArray.forEach(item => {
+                    ul.insertAdjacentHTML('beforeend', `<li class="text-dark-text">${item}</li>`);
+                });
+            } else {
+                container.style.display = 'none';
+            }
+        }
+
+        // --- ÉCOUTEURS D'ÉVÉNEMENTS ---
+
+        // Fermeture Modale
+        closeBtn.addEventListener('click', closeModal);
+        modalOverlayBg.addEventListener('click', closeModal);
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape' && !modal.classList.contains('hidden')) {
+                closeModal();
+            }
+        });
+
+        // Filtres
+        filterBtns.forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                filterBtns.forEach(b => {
+                    b.classList.remove('active', 'bg-white', 'text-black');
+                    b.classList.add('bg-dark-card', 'text-dark-muted');
+                });
+                
+                const clickedBtn = e.currentTarget;
+                clickedBtn.classList.remove('bg-dark-card', 'text-dark-muted');
+                clickedBtn.classList.add('active', 'bg-white', 'text-black');
+                
+                renderCards(clickedBtn.getAttribute('data-filter'));
+            });
+        });
+
+        // Init
+        renderCards();
+    </script>
+</body>
+</html>
